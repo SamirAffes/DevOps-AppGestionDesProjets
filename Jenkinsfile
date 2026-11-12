@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -11,24 +12,28 @@ pipeline {
             }
         }
 
+        stage('Check Project') {
+            steps {
+                echo 'Checking Maven project...'
+                sh 'pwd'
+                sh 'ls -la'
+                sh 'find . -name pom.xml'
+            }
+        }
+
         stage('Clean') {
             steps {
                 echo 'Cleaning project...'
-                dir('gestion-projets') {
-                    sh 'mvn clean'
-                }
+                sh 'mvn clean'
             }
         }
 
         stage('Package') {
             steps {
                 echo 'Packaging project...'
-                dir('gestion-projets') {
-                    sh 'mvn package -DskipTests'
-                }
+                sh 'mvn package -DskipTests'
             }
         }
-
     }
 
     post {
