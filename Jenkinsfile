@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -12,36 +11,46 @@ pipeline {
             }
         }
 
-        stage('Check Project') {
-            steps {
-                echo 'Checking Maven project...'
-                sh 'pwd'
-                sh 'ls -la'
-                sh 'find . -name pom.xml'
-            }
-        }
-
         stage('Clean') {
             steps {
                 echo 'Cleaning project...'
-                sh 'mvn clean'
+                dir('backend') {
+                    sh 'mvn clean'
+                }
             }
         }
 
         stage('Package') {
             steps {
                 echo 'Packaging project...'
-                sh 'mvn package -DskipTests'
+                dir('backend') {
+                    sh 'mvn package -DskipTests'
+                }
             }
         }
+
+        stage('Build Docker Images') {
+            steps {
+                echo 'Building Docker images...'
+                sh 'docker compose build'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying stack...'
+                sh 'docker compose up -d'
+            }
+        }
+
     }
 
     post {
         success {
-            echo 'Build successful !'
+            echo 'Deployment successful !'
         }
         failure {
-            echo 'Build failed !'
+            echo 'Deployment failed !'
         }
     }
 }
