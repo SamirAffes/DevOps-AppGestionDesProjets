@@ -3,10 +3,11 @@ pipeline {
 
     environment {
         COMPOSE_PROJECT_NAME = 'devops-appgestiondesprojets'
+        TAG = "${BUILD_NUMBER}"
     }
 
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
 
@@ -59,6 +60,27 @@ pipeline {
         stage('Build images Docker') {
             steps {
                 sh 'docker compose build'
+            }
+        }
+
+        stage('Push Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker push samiraffes/appgestion-backend:$TAG
+                        docker push samiraffes/appgestion-frontend:$TAG
+                        docker tag samiraffes/appgestion-backend:$TAG samiraffes/appgestion-backend:latest
+                        docker tag samiraffes/appgestion-frontend:$TAG samiraffes/appgestion-frontend:latest
+                        docker push samiraffes/appgestion-backend:latest
+                        docker push samiraffes/appgestion-frontend:latest
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker logout || true'
+                }
             }
         }
 
