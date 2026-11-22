@@ -34,7 +34,7 @@ pipeline {
             steps {
                 dir('backend') {
                     withSonarQubeEnv('sonarqube') {
-                        sh 'mvn -B sonar:sonar -Dsonar.projectKey=appgestion-backend'
+                        sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar -Dsonar.projectKey=appgestion-backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_AUTH_TOKEN'
                     }
                 }
             }
