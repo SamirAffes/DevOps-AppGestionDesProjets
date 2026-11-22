@@ -68,12 +68,13 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
                     sh '''
                         echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                        docker push samiraffes/appgestion-backend:$TAG
-                        docker push samiraffes/appgestion-frontend:$TAG
+                        push() { for i in 1 2 3 4 5; do docker push "$1" && return 0; sleep 5; done; return 1; }
+                        push samiraffes/appgestion-backend:$TAG
+                        push samiraffes/appgestion-frontend:$TAG
                         docker tag samiraffes/appgestion-backend:$TAG samiraffes/appgestion-backend:latest
                         docker tag samiraffes/appgestion-frontend:$TAG samiraffes/appgestion-frontend:latest
-                        docker push samiraffes/appgestion-backend:latest
-                        docker push samiraffes/appgestion-frontend:latest
+                        push samiraffes/appgestion-backend:latest
+                        push samiraffes/appgestion-frontend:latest
                     '''
                 }
             }
