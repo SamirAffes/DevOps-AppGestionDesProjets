@@ -2,13 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Même nom que ta stack lancée à la main : Jenkins reprend les mêmes
-        // conteneurs et le même volume MySQL (pas de conflit de noms).
         COMPOSE_PROJECT_NAME = 'devops-appgestiondesprojets'
     }
 
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 40, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
 
@@ -28,6 +26,24 @@ pipeline {
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'backend/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Analyse SonarQube') {
+            steps {
+                dir('backend') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh 'mvn -B sonar:sonar -Dsonar.projectKey=appgestion-backend'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
