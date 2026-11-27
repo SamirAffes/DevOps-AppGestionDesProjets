@@ -7,7 +7,7 @@ pipeline {
     }
 
     options {
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 50, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
 
@@ -85,19 +85,27 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Kubernetes') {
             steps {
-                sh 'docker compose up -d'
+                sh '''
+                    kubectl apply -f k8s/mysql.yaml
+                    sed "s#appgestion-backend:[0-9][0-9]*#appgestion-backend:$TAG#" k8s/backend.yaml | kubectl apply -f -
+                    sed "s#appgestion-frontend:[0-9][0-9]*#appgestion-frontend:$TAG#" k8s/frontend.yaml | kubectl apply -f -
+                    kubectl rollout status deployment/mysql --timeout=240s
+                    kubectl rollout status deployment/backend --timeout=420s
+                    kubectl rollout status deployment/frontend --timeout=300s
+                '''
             }
         }
 
         stage('Verification') {
             steps {
                 sh '''
+                    URL=$(minikube service frontend --url)
+                    echo "URL: $URL"
                     for i in $(seq 1 30); do
-                        if curl -fs http://localhost:8081/entreprise/all > /dev/null \
-                           && curl -fs http://localhost:4200/api/entreprise/all > /dev/null; then
-                            echo "Application OK (backend + frontend via Nginx)"
+                        if curl -fs -m 10 "$URL/api/entreprise/all" > /dev/null; then
+                            echo "Application OK (Minikube: frontend + backend + MySQL)"
                             exit 0
                         fi
                         echo "En attente de l'application ($i/30)..."
@@ -112,13 +120,13 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline OK : application disponible sur le port 4200'
+            echo 'Pipeline OK : application deployee dans Minikube'
             sh 'docker image prune -f'
         }
         failure {
             echo 'Pipeline en echec : voir le stage rouge'
-            sh 'docker compose ps || true'
-            sh 'docker compose logs --tail=40 backend || true'
+            sh 'kubectl get pods || true'
+            sh 'kubectl logs deploy/backend --tail=40 || true'
         }
     }
 }
