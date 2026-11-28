@@ -89,11 +89,15 @@ pipeline {
             steps {
                 sh '''
                     kubectl apply -f k8s/mysql.yaml
+                    kubectl apply -f k8s/prometheus.yaml
+                    kubectl apply -f k8s/grafana.yaml
                     sed "s#appgestion-backend:[0-9][0-9]*#appgestion-backend:$TAG#" k8s/backend.yaml | kubectl apply -f -
                     sed "s#appgestion-frontend:[0-9][0-9]*#appgestion-frontend:$TAG#" k8s/frontend.yaml | kubectl apply -f -
                     kubectl rollout status deployment/mysql --timeout=240s
                     kubectl rollout status deployment/backend --timeout=420s
                     kubectl rollout status deployment/frontend --timeout=300s
+                    kubectl rollout status deployment/prometheus --timeout=300s
+                    kubectl rollout status deployment/grafana --timeout=420s
                 '''
             }
         }
